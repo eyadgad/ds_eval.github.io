@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DS Eval · Rubric Scorer</title>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="logo">◣◢</span>
+    <div>
+      <h1>Rubric Scorer</h1>
+      <p class="tagline">Create &amp; score rubric points · Grok vs Claude</p>
+    </div>
+  </div>
+  <div class="toolbar">
+    <div class="btn-group upload-group">
+      <button id="btnUploadGrok" class="btn btn-upload grok" title="Upload Grok's response as a .zip. Every text file inside is scored against each rubric point and fills column A.">↑ Grok .zip</button>
+      <button id="btnUploadClaude" class="btn btn-upload claude" title="Upload Claude's response as a .zip. Every text file inside is scored against each rubric point and fills column B.">↑ Claude .zip</button>
+    </div>
+    <button id="btnPaste" class="btn btn-primary" title="Paste rules from the clipboard — JSON, Excel (tab-separated), or plain text (one rule per line). Replaces the existing rules.">Paste</button>
+    <div class="btn-group">
+      <button id="btnImportJSON" class="btn">Import JSON</button>
+      <button id="btnImportExcel" class="btn">Import Excel</button>
+    </div>
+    <div class="btn-group">
+      <button id="btnExportJSON" class="btn">Export JSON</button>
+      <button id="btnExportExcel" class="btn">Export Excel</button>
+    </div>
+  </div>
+  <input id="fileJSON" type="file" accept=".json,application/json" hidden />
+  <input id="fileExcel" type="file" accept=".xlsx,.xls" hidden />
+  <input id="fileGrokZip" type="file" accept=".zip,application/zip" hidden />
+  <input id="fileClaudeZip" type="file" accept=".zip,application/zip" hidden />
+</header>
+
+<section class="hero">
+  <div class="summary" aria-label="Score summary">
+  <div class="card rules">
+    <span class="card-label">Rules</span>
+    <span class="card-value" id="sumRules">0</span>
+    <span class="card-sub">total points</span>
+  </div>
+  <div class="card">
+    <span class="card-label">Total weight</span>
+    <span class="card-value" id="sumWeight">0</span>
+    <span class="card-sub">sum of weights</span>
+  </div>
+  <div class="card score">
+    <span class="card-label">Unweighted score</span>
+    <div class="card-models">
+      <div class="cm grok">
+        <span class="cm-name">Grok (A)</span>
+        <span class="cm-val" id="sumGrokU">0%</span>
+        <span class="cm-sub" id="sumGrokUsub">0/0 passed</span>
+      </div>
+      <div class="cm claude">
+        <span class="cm-name">Claude (B)</span>
+        <span class="cm-val" id="sumClaudeU">0%</span>
+        <span class="cm-sub" id="sumClaudeUsub">0/0 passed</span>
+      </div>
+    </div>
+    <span class="cm-gap">Gap <b id="sumGapU">+0 pp</b></span>
+  </div>
+  <div class="card score">
+    <span class="card-label">Weighted score</span>
+    <div class="card-models">
+      <div class="cm grok">
+        <span class="cm-name">Grok (A)</span>
+        <span class="cm-val" id="sumGrokW">0%</span>
+        <span class="cm-sub" id="sumGrokWsub">0/0 wt</span>
+      </div>
+      <div class="cm claude">
+        <span class="cm-name">Claude (B)</span>
+        <span class="cm-val" id="sumClaudeW">0%</span>
+        <span class="cm-sub" id="sumClaudeWsub">0/0 wt</span>
+      </div>
+    </div>
+    <span class="cm-gap">Gap <b id="sumGapW">+0 pp</b></span>
+  </div>
+  <div class="card decision" id="decisionCard">
+    <span class="card-label">Decision</span>
+    <span class="card-value badge" id="decisionBadge">—</span>
+    <span class="card-sub crit"><span class="crit-item"><span id="critTarget" class="crit-dot">●</span> Target Hit</span><span class="crit-item"><span id="critDiff" class="crit-dot">●</span> Strong Diff</span></span>
+  </div>
+  </div>
+</section>
+
+<section class="controls">
+  <input id="search" class="search" type="search" placeholder="Search rubric text…" />
+  <div class="pill-filters">
+    <div class="pill-group" data-filter="category">
+      <span class="flabel">Category</span>
+      <button type="button" class="pill active" data-val="all">All</button>
+      <button type="button" class="pill" data-cat="Content" data-val="Content">Content</button>
+      <button type="button" class="pill" data-cat="Execution" data-val="Execution">Execution</button>
+      <button type="button" class="pill" data-cat="Presentation &amp; Formatting" data-val="Presentation &amp; Formatting">Style</button>
+    </div>
+    <div class="pill-group" data-filter="grok">
+      <span class="flabel">Grok (A)</span>
+      <button type="button" class="pill active" data-val="all">All</button>
+      <button type="button" class="pill pass" data-val="pass">Pass</button>
+      <button type="button" class="pill fail" data-val="fail">Fail</button>
+    </div>
+    <div class="pill-group" data-filter="claude">
+      <span class="flabel">Claude (B)</span>
+      <button type="button" class="pill active" data-val="all">All</button>
+      <button type="button" class="pill pass" data-val="pass">Pass</button>
+      <button type="button" class="pill fail" data-val="fail">Fail</button>
+    </div>
+  </div>
+  <button id="btnClear" class="btn btn-ghost">Clear filters</button>
+  <span class="legend" title="Click a lettered circle to toggle pass / fail">
+    <span class="lg">A</span><span>Grok</span><span class="lg">B</span><span>Claude</span>
+  </span>
+  <span class="count-pill" id="visibleCount"></span>
+</section>
+
+<section class="tablewrap">
+  <table class="rubric-table">
+    <thead>
+      <tr>
+        <th class="col-grip" aria-label="Reorder"></th>
+        <th class="col-idx">#</th>
+        <th class="col-models" title="A = Grok · B = Claude">A · B</th>
+        <th class="col-text">Rubric text</th>
+        <th class="col-cat">Category</th>
+        <th class="col-wt">Wt</th>
+        <th class="col-act">Actions</th>
+      </tr>
+    </thead>
+    <tbody id="rubricBody"></tbody>
+    <tfoot>
+      <tr id="addRowTr" class="add-row-tr">
+        <td colspan="7">
+          <button id="btnAddBottom" class="add-fab" type="button" title="Add rule (Ctrl+N)" aria-label="Add rule">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+        </td>
+      </tr>
+    </tfoot>
+  </table>
+  <div id="emptyState" class="empty-state" hidden>
+    <p>No rubric points yet.</p>
+    <p class="muted">Click <strong>+ Add rule</strong> (or press <kbd>Ctrl</kbd>+<kbd>N</kbd>), or import a JSON / Excel file.</p>
+  </div>
+</section>
+
+<div id="toast" class="toast" hidden></div>
+
+<div id="fileModal" class="modal" hidden>
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="fileModalTitle">
+    <header class="modal-head">
+      <div class="modal-titles">
+        <span id="fileModalTag" class="modal-tag">A</span>
+        <span id="fileModalTitle" class="modal-title">file</span>
+        <span id="fileModalMeta" class="modal-meta"></span>
+      </div>
+      <button id="fileModalClose" class="modal-close" type="button" aria-label="Close">✕</button>
+    </header>
+    <div class="modal-body"><pre id="fileModalContent" class="file-content"></pre></div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
