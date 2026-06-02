@@ -968,7 +968,7 @@ function wire() {
 
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') { closeFileModal(); return; }
-    if ((e.ctrlKey || e.metaKey) && (e.key === 'n' || e.key === 'N')) {
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'k' || e.key === 'K')) {
       e.preventDefault();
       addItem();
     }
