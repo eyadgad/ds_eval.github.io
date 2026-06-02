@@ -188,7 +188,7 @@ function renderTable() {
   body.innerHTML = '';
   const visible = state.items.filter(passFilter);
   $('emptyState').hidden = state.items.length !== 0;
-  $('addRowTr').hidden = state.items.length === 0;
+  $('addRowTr').hidden = false;
   $('visibleCount').textContent =
     state.items.length === 0 ? '' : 'Showing ' + visible.length + ' of ' + state.items.length;
 
