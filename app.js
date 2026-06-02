@@ -380,9 +380,16 @@ function duplicateItem(id) {
 function deleteItem(id) {
   const i = state.items.findIndex((x) => x.id === id);
   if (i < 0) return;
-  if (!confirm('Delete this rubric point?')) return;
+  const removed = state.items[i];
   state.items.splice(i, 1);
+  matchIndex.delete(id);
   save(); renderTable();
+  toastUndo('Rule deleted', () => {
+    state.items.splice(Math.min(i, state.items.length), 0, removed);
+    if (hasCorpus()) analyzeItem(removed);
+    save(); renderTable();
+    toast('Rule restored', 'ok');
+  });
 }
 
 /* ---------- toast ---------- */
@@ -394,6 +401,25 @@ function toast(msg, kind) {
   el.hidden = false;
   clearTimeout(_toastT);
   _toastT = setTimeout(() => { el.hidden = true; }, 2600);
+}
+// toast with an inline action (used for undoing a delete)
+function toastUndo(msg, onAction, actionLabel) {
+  const el = $('toast');
+  el.className = 'toast';
+  el.textContent = msg + ' ';
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'toast-action';
+  btn.textContent = actionLabel || 'Undo';
+  btn.addEventListener('click', () => {
+    el.hidden = true;
+    clearTimeout(_toastT);
+    onAction();
+  });
+  el.appendChild(btn);
+  el.hidden = false;
+  clearTimeout(_toastT);
+  _toastT = setTimeout(() => { el.hidden = true; }, 6000);
 }
 
 /* ---------- file download ---------- */

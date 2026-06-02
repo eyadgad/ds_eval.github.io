@@ -385,6 +385,12 @@ kbd {
 }
 .toast.err { border-color: var(--red); }
 .toast.ok { border-color: var(--green); }
+.toast-action {
+  appearance: none; cursor: pointer; margin-left: 10px;
+  background: transparent; border: 1px solid var(--accent); color: var(--accent);
+  padding: 3px 10px; border-radius: 7px; font-size: 12px; font-weight: 600;
+}
+.toast-action:hover { background: var(--accent-dim); color: #fff; }
 
 @media (max-width: 1200px) {
   .summary { grid-template-columns: repeat(4, minmax(0,1fr)); }
