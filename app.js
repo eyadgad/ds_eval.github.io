@@ -11,7 +11,6 @@ const XLSX_LOCAL = 'vendor/xlsx.full.min.js';
 const XLSX_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
 const JSZIP_LOCAL = 'vendor/jszip.min.js';
 const JSZIP_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
-const SCORE_THRESHOLD = 0.5;   // fraction of a rule's keywords that must appear → Pass
 const MAX_MATCH_FILES = 4;     // how many candidate files to list under each rubric point
 
 const state = {
@@ -246,7 +245,7 @@ function renderTable() {
     txt.addEventListener('input', () => { it.text = txt.textContent; debouncedSave(); });
     txt.addEventListener('blur', () => {
       it.text = txt.textContent;
-      if (hasCorpus()) { analyzeItem(it); save(); renderTable(); }   // re-score this rule against the responses
+      if (hasCorpus()) { analyzeItem(it); save(); renderTable(); }   // refresh matched-file hints only
       else save();
     });
     tdText.appendChild(txt);
@@ -631,13 +630,13 @@ async function importExcelFile(file) {
 }
 
 /* ============================================================
-   Response analysis — score each rubric point against the
+   Response review — find likely files for each rubric point in the
    uploaded Grok (A) / Claude (B) response archives (.zip).
 
    Pipeline:  rubric text → keywords (stop-words & boilerplate
    verbs removed) → matched against every text file in the zip
-   → TF-IDF-weighted coverage → Pass if coverage ≥ threshold.
-   The files a rule most likely appears in are listed below it.
+   → TF-IDF-weighted coverage. Scores are never changed here;
+   the user checks the files and scores manually.
    ============================================================ */
 
 // In-memory only (zips can be large — not persisted to localStorage).
@@ -683,11 +682,11 @@ function baseName(path) {
 
 function escapeRe(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 
-// Score one keyword set against one corpus.
+// Match one keyword set against one corpus.
 // coverage = (distinct keywords found in ≥1 file) / (keywords);  files ranked by Σ idf.
-function scoreAgainstCorpus(keywords, corpus) {
+function matchAgainstCorpus(keywords, corpus) {
   if (!corpus || !corpus.files.length || !keywords.length) {
-    return { score: 0, pass: false, matched: 0, total: keywords.length, files: [] };
+    return { score: 0, matched: 0, total: keywords.length, files: [] };
   }
   const df = {}; keywords.forEach((k) => { df[k] = 0; });
   const perFile = [];
@@ -709,23 +708,22 @@ function scoreAgainstCorpus(keywords, corpus) {
   const coverage = matched.size / keywords.length;
   return {
     score: coverage,
-    pass: coverage >= SCORE_THRESHOLD,
     matched: matched.size,
     total: keywords.length,
     files: perFile.slice(0, MAX_MATCH_FILES).map((p) => ({ name: baseName(p.path), path: p.path, kws: p.kws }))
   };
 }
 
-// Score one rule against whatever corpora are loaded; updates its A/B pass-fail.
+// Find likely files for one rule against whatever corpora are loaded.
+// This intentionally does not update A/B pass-fail scores.
 function analyzeItem(it) {
   const kws = tokenizeRubric(it.text);
   const res = {};
   for (const model of ['grok', 'claude']) {
     const c = corpora[model];
     if (!c) continue;
-    const r = scoreAgainstCorpus(kws, c);
+    const r = matchAgainstCorpus(kws, c);
     res[model] = r;
-    it[model] = r.pass ? 1 : 0;     // algorithm sets the score (user can still override by clicking)
   }
   if (Object.keys(res).length) matchIndex.set(it.id, res);
   else matchIndex.delete(it.id);
@@ -778,10 +776,10 @@ function buildMatchEl(it) {
     }
 
     const sc = document.createElement('span');
-    sc.className = 'mf-score' + (r.pass ? ' pass' : '');
-    sc.textContent = Math.round(r.score * 100) + '%';
+    sc.className = 'mf-score';
+    sc.textContent = Math.round(r.score * 100) + '% match';
     sc.title = r.matched + '/' + r.total + ' keyword' + (r.total === 1 ? '' : 's') +
-      ' found → ' + (r.pass ? 'Pass' : 'Fail') + ' (threshold ' + Math.round(SCORE_THRESHOLD * 100) + '%)';
+      ' found. Review the files and score this rule manually.';
     line.appendChild(sc);
 
     wrap.appendChild(line);
@@ -871,7 +869,7 @@ function updateUploadStatus(model) {
     btn.textContent = '✓ ' + name + ' · ' + c.files.length;
     btn.classList.add('loaded');
     btn.title = c.name + ' — ' + c.files.length + ' text file' + (c.files.length === 1 ? '' : 's') +
-      ' indexed and scored. Click to replace.';
+      ' indexed for manual review. Scores are not changed. Click to replace.';
   } else {
     btn.textContent = '↑ ' + name + ' .zip';
     btn.classList.remove('loaded');
@@ -888,10 +886,8 @@ async function handleZipUpload(file, model) {
     corpora[model] = corpus;
     updateUploadStatus(model);
     analyzeAll();
-    const s = computeScores();
-    const rate = model === 'grok' ? s.grokRate : s.claudeRate;
-    toast(label + ': scored ' + state.items.length + ' rules against ' + corpus.files.length +
-      ' file' + (corpus.files.length === 1 ? '' : 's') + ' — ' + rate.toFixed(0) + '% pass', 'ok');
+    toast(label + ': indexed ' + corpus.files.length +
+      ' file' + (corpus.files.length === 1 ? '' : 's') + ' for manual review', 'ok');
   } catch (e) {
     toast(label + ' upload failed: ' + e.message, 'err');
   }
