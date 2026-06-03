@@ -320,7 +320,7 @@ body.modal-open { overflow: hidden; }
 .seg.active[data-cat="Presentation & Formatting"] { background: var(--claude); color: #2a1500; }
 
 .wt-input {
-  width: 46px; text-align: center; background: var(--bg-2); border: 1px solid var(--border);
+  width: 54px; text-align: center; background: var(--bg-2); border: 1px solid var(--border);
   color: var(--text); border-radius: 6px; padding: 5px 4px; font-size: 13px; font-variant-numeric: tabular-nums;
 }
 .wt-input:focus { border-color: var(--accent); outline: none; }

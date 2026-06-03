@@ -12,6 +12,8 @@ const XLSX_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.m
 const JSZIP_LOCAL = 'vendor/jszip.min.js';
 const JSZIP_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
 const MAX_MATCH_FILES = 4;     // how many candidate files to list under each rubric point
+const MIN_WEIGHT = -10;
+const MAX_WEIGHT = 10;
 
 const state = {
   items: [],
@@ -35,7 +37,7 @@ function normCategory(c) {
 function normWeight(w) {
   let n = parseInt(w, 10);
   if (isNaN(n)) n = 1;
-  return Math.max(1, Math.min(10, n));
+  return Math.max(MIN_WEIGHT, Math.min(MAX_WEIGHT, n));
 }
 function normPass(v) {
   if (v === 1 || v === 0) return v;
@@ -99,10 +101,11 @@ function debouncedSave() { clearTimeout(_saveT); _saveT = setTimeout(save, 250);
 function computeScores() {
   const items = state.items;
   const N = items.length;
-  let totalWeight = 0, gPass = 0, cPass = 0, gW = 0, cW = 0;
+  let totalWeight = 0, netWeight = 0, gPass = 0, cPass = 0, gW = 0, cW = 0;
   let diff = 0, leaked = 0, bothFail = 0;
   for (const it of items) {
-    totalWeight += it.weight;
+    totalWeight += Math.max(0, it.weight);
+    netWeight += it.weight;
     if (it.grok === 1) { gPass++; gW += it.weight; }
     if (it.claude === 1) { cPass++; cW += it.weight; }
     if (it.grok === 1) leaked++;          // Grok passed → leaked (bad for a hard eval)
@@ -116,7 +119,7 @@ function computeScores() {
   const targetHit = grokRate < 50 && claudeRate < 60;
   const strongDiff = claudeRate < 80 && claudeRate - grokRate >= 25;
   return {
-    N, totalWeight, gPass, cPass, gW, cW,
+    N, totalWeight, netWeight, gPass, cPass, gW, cW,
     diff, leaked, bothFail,
     grokRate, claudeRate,
     grokW: pct(gW, totalWeight), claudeW: pct(cW, totalWeight),
@@ -133,6 +136,7 @@ function renderSummary() {
   const s = computeScores();
   $('sumRules').textContent = s.N;
   $('sumWeight').textContent = s.totalWeight;
+  $('sumWeight').title = 'Positive-weight maximum: ' + s.totalWeight + ' wt. Net rubric weight: ' + s.netWeight + ' wt.';
 
   $('sumGrokU').textContent = s.grokRate.toFixed(0) + '%';
   $('sumGrokUsub').textContent = s.gPass + '/' + s.N + ' passed';
@@ -277,7 +281,8 @@ function renderTable() {
     const tdWt = document.createElement('td');
     const wt = document.createElement('input');
     wt.className = 'wt-input';
-    wt.type = 'number'; wt.min = '1'; wt.max = '10'; wt.step = '1';
+    wt.type = 'number'; wt.min = String(MIN_WEIGHT); wt.max = String(MAX_WEIGHT); wt.step = '1';
+    wt.title = 'Weight from -10 to 10';
     wt.value = it.weight;
     const commitWt = () => {
       const n = normWeight(wt.value);
@@ -286,7 +291,7 @@ function renderTable() {
     };
     wt.addEventListener('input', () => {
       const n = parseInt(wt.value, 10);
-      wt.classList.toggle('invalid', isNaN(n) || n < 1 || n > 10);
+      wt.classList.toggle('invalid', isNaN(n) || n < MIN_WEIGHT || n > MAX_WEIGHT);
     });
     wt.addEventListener('change', commitWt);
     wt.addEventListener('blur', commitWt);
