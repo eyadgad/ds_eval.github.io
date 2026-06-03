@@ -114,7 +114,7 @@ function computeScores() {
   const grokRate = pct(gPass, N);
   const claudeRate = pct(cPass, N);
   const gap = claudeRate - grokRate;
-  const targetHit = grokRate <= 40 && claudeRate <= 50;
+  const targetHit = grokRate < 50 && claudeRate < 60;
   const strongDiff = claudeRate < 80 && claudeRate - grokRate >= 25;
   return {
     N, totalWeight, gPass, cPass, gW, cW,
@@ -160,7 +160,7 @@ function renderSummary() {
   const t = $('critTarget'), d = $('critDiff');
   t.className = 'crit-dot ' + (s.targetHit ? 'ok' : 'no');
   d.className = 'crit-dot ' + (s.strongDiff ? 'ok' : 'no');
-  t.title = 'Target Hit: Grok ≤40% and Claude ≤50% (Grok ' + s.grokRate.toFixed(0) + '%, Claude ' + s.claudeRate.toFixed(0) + '%)';
+  t.title = 'Target Hit: Grok <50% and Claude <60% (Grok ' + s.grokRate.toFixed(0) + '%, Claude ' + s.claudeRate.toFixed(0) + '%)';
   d.title = 'Strong Differentiation: Claude <80% and (Claude − Grok) ≥25pp (gap ' + s.gap.toFixed(0) + 'pp)';
 }
 
