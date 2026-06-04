@@ -127,6 +127,24 @@ function computeScores() {
   };
 }
 
+function formatDecimal(value, digits = 2) {
+  if (!Number.isFinite(value)) return '0';
+  const sign = value < 0 ? '-' : '';
+  const factor = Math.pow(10, digits);
+  const scaled = Math.trunc(Math.abs(value) * factor);
+  const whole = Math.floor(scaled / factor);
+  const frac = String(scaled % factor).padStart(digits, '0').replace(/0+$/, '');
+  return sign + whole + (frac ? '.' + frac : '');
+}
+
+function formatPercent(value) {
+  return formatDecimal(value, 2) + '%';
+}
+
+function formatPointGap(value) {
+  return (value >= 0 ? '+' : '') + formatDecimal(value, 2) + ' pp';
+}
+
 /* ---------- DOM refs ---------- */
 const $ = (id) => document.getElementById(id);
 const body = $('rubricBody');
@@ -138,17 +156,17 @@ function renderSummary() {
   $('sumWeight').textContent = s.totalWeight;
   $('sumWeight').title = 'Positive-weight maximum: ' + s.totalWeight + ' wt. Net rubric weight: ' + s.netWeight + ' wt.';
 
-  $('sumGrokU').textContent = s.grokRate.toFixed(0) + '%';
+  $('sumGrokU').textContent = formatPercent(s.grokRate);
   $('sumGrokUsub').textContent = s.gPass + '/' + s.N + ' passed';
-  $('sumGrokW').textContent = s.grokW.toFixed(0) + '%';
+  $('sumGrokW').textContent = formatPercent(s.grokW);
   $('sumGrokWsub').textContent = s.gW + '/' + s.totalWeight + ' wt';
-  $('sumClaudeU').textContent = s.claudeRate.toFixed(0) + '%';
+  $('sumClaudeU').textContent = formatPercent(s.claudeRate);
   $('sumClaudeUsub').textContent = s.cPass + '/' + s.N + ' passed';
-  $('sumClaudeW').textContent = s.claudeW.toFixed(0) + '%';
+  $('sumClaudeW').textContent = formatPercent(s.claudeW);
   $('sumClaudeWsub').textContent = s.cW + '/' + s.totalWeight + ' wt';
   const setGap = (id, val) => {
     const el = $(id);
-    el.textContent = (val >= 0 ? '+' : '') + val.toFixed(0) + ' pp';
+    el.textContent = formatPointGap(val);
     el.style.color = val >= 25 ? 'var(--green)' : val < 0 ? 'var(--red)' : 'var(--text)';
   };
   setGap('sumGapU', s.gap);
@@ -163,8 +181,8 @@ function renderSummary() {
   const t = $('critTarget'), d = $('critDiff');
   t.className = 'crit-dot ' + (s.targetHit ? 'ok' : 'no');
   d.className = 'crit-dot ' + (s.strongDiff ? 'ok' : 'no');
-  t.title = 'Target Hit: Grok <50% and Claude <60% (Grok ' + s.grokRate.toFixed(0) + '%, Claude ' + s.claudeRate.toFixed(0) + '%)';
-  d.title = 'Strong Differentiation: Claude <80% and (Claude − Grok) ≥25pp (gap ' + s.gap.toFixed(0) + 'pp)';
+  t.title = 'Target Hit: Grok <50% and Claude <60% (Grok ' + formatPercent(s.grokRate) + ', Claude ' + formatPercent(s.claudeRate) + ')';
+  d.title = 'Strong Differentiation: Claude <80% and (Claude − Grok) ≥25pp (gap ' + formatPointGap(s.gap) + ')';
 }
 
 /* ---------- filtering ---------- */
