@@ -115,15 +115,18 @@ function computeScores() {
   const pct = (num, den) => (den > 0 ? (num / den) * 100 : 0);
   const grokRate = pct(gPass, N);
   const claudeRate = pct(cPass, N);
+  const grokWeighted = pct(gW, totalWeight);
+  const claudeWeighted = pct(cW, totalWeight);
   const gap = claudeRate - grokRate;
-  const targetHit = grokRate < 50 && claudeRate < 60;
-  const strongDiff = claudeRate < 80 && claudeRate - grokRate >= 25;
+  const weightedGap = claudeWeighted - grokWeighted;
+  const targetHit = grokWeighted < 50 && claudeWeighted < 60;
+  const strongDiff = claudeWeighted < 80 && weightedGap >= 25;
   return {
     N, totalWeight, netWeight, gPass, cPass, gW, cW,
     diff, leaked, bothFail,
     grokRate, claudeRate,
-    grokW: pct(gW, totalWeight), claudeW: pct(cW, totalWeight),
-    gap, targetHit, strongDiff, accepted: targetHit || strongDiff
+    grokW: grokWeighted, claudeW: claudeWeighted,
+    gap, weightedGap, targetHit, strongDiff, accepted: targetHit || strongDiff
   };
 }
 
@@ -181,8 +184,8 @@ function renderSummary() {
   const t = $('critTarget'), d = $('critDiff');
   t.className = 'crit-dot ' + (s.targetHit ? 'ok' : 'no');
   d.className = 'crit-dot ' + (s.strongDiff ? 'ok' : 'no');
-  t.title = 'Target Hit: Grok <50% and Claude <60% (Grok ' + formatPercent(s.grokRate) + ', Claude ' + formatPercent(s.claudeRate) + ')';
-  d.title = 'Strong Differentiation: Claude <80% and (Claude − Grok) ≥25pp (gap ' + formatPointGap(s.gap) + ')';
+  t.title = 'Weighted Target Hit: Grok <50% and Claude <60% (Grok ' + formatPercent(s.grokW) + ', Claude ' + formatPercent(s.claudeW) + ')';
+  d.title = 'Weighted Strong Differentiation: Claude <80% and (Claude - Grok) >=25pp (gap ' + formatPointGap(s.weightedGap) + ')';
 }
 
 /* ---------- filtering ---------- */
