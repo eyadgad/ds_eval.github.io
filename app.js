@@ -104,13 +104,18 @@ function computeScores() {
   let totalWeight = 0, netWeight = 0, gPass = 0, cPass = 0, gW = 0, cW = 0;
   let diff = 0, leaked = 0, bothFail = 0;
   for (const it of items) {
-    totalWeight += Math.max(0, it.weight);
+    // A negative-weight (penalty) rule is a positive rule of magnitude |w| whose
+    // "pass" is AVOIDING the behavior (score 0); a positive rule passes on score 1.
+    const aw = Math.abs(it.weight);
+    const gPassed = it.weight >= 0 ? it.grok === 1 : it.grok === 0;
+    const cPassed = it.weight >= 0 ? it.claude === 1 : it.claude === 0;
+    totalWeight += aw;
     netWeight += it.weight;
-    if (it.grok === 1) { gPass++; gW += it.weight; }
-    if (it.claude === 1) { cPass++; cW += it.weight; }
-    if (it.grok === 1) leaked++;          // Grok passed → leaked (bad for a hard eval)
-    else if (it.claude === 1) diff++;     // only Claude passed → differentiating (ideal)
-    else bothFail++;                      // neither passed
+    if (gPassed) { gPass++; gW += aw; }
+    if (cPassed) { cPass++; cW += aw; }
+    if (gPassed) leaked++;          // Grok passed → leaked (bad for a hard eval)
+    else if (cPassed) diff++;       // only Claude passed → differentiating (ideal)
+    else bothFail++;                // neither passed
   }
   const pct = (num, den) => (den > 0 ? (num / den) * 100 : 0);
   const grokRate = pct(gPass, N);
@@ -157,7 +162,7 @@ function renderSummary() {
   const s = computeScores();
   $('sumRules').textContent = s.N;
   $('sumWeight').textContent = s.totalWeight;
-  $('sumWeight').title = 'Positive-weight maximum: ' + s.totalWeight + ' wt. Net rubric weight: ' + s.netWeight + ' wt.';
+  $('sumWeight').title = 'Total achievable weight (sum of |weights|): ' + s.totalWeight + ' wt. Net rubric weight: ' + s.netWeight + ' wt.';
 
   $('sumGrokU').textContent = formatPercent(s.grokRate);
   $('sumGrokUsub').textContent = s.gPass + '/' + s.N + ' passed';
