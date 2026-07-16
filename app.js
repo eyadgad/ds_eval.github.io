@@ -74,11 +74,12 @@ function itemsFromJSON(obj) {
 }
 function itemsToJSON() {
   return {
-    items: state.items.map((it) => ({
+    items: state.items.map((it, idx) => ({
+      id: 'C' + (idx + 1),
       text: it.text,
       criteriaAnnotations: { Rule_Category: it.category, Weight: String(it.weight) },
-      grok: it.grok === 1 ? 1 : 0,
-      claude: it.claude === 1 ? 1 : 0
+      grok: it.grok === 1 ? '1' : '0',
+      claude: it.claude === 1 ? '1' : '0'
     }))
   };
 }
@@ -466,6 +467,28 @@ function exportJSON() {
   const blob = new Blob([JSON.stringify(itemsToJSON(), null, 2)], { type: 'application/json' });
   downloadBlob(blob, 'rubric.json');
   toast('Exported rubric.json', 'ok');
+}
+async function copyJSON() {
+  const text = JSON.stringify(itemsToJSON(), null, 2);
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(text);
+    } else {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.top = '-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      const ok = document.execCommand('copy');
+      ta.remove();
+      if (!ok) throw new Error('copy command failed');
+    }
+    toast('Copied rubric JSON', 'ok');
+  } catch (e) {
+    toast('Copy failed: ' + e.message, 'err');
+  }
 }
 function importJSONText(text) {
   let obj;
@@ -927,6 +950,7 @@ async function handleZipUpload(file, model) {
 /* ---------- wiring ---------- */
 function wire() {
   $('btnAddBottom').addEventListener('click', () => addItem(true));
+  $('btnCopy').addEventListener('click', copyJSON);
   $('btnExportJSON').addEventListener('click', exportJSON);
   $('btnExportExcel').addEventListener('click', exportExcel);
 
