@@ -468,8 +468,7 @@ function exportJSON() {
   downloadBlob(blob, 'rubric.json');
   toast('Exported rubric.json', 'ok');
 }
-async function copyJSON() {
-  const text = JSON.stringify(itemsToJSON(), null, 2);
+async function copyTextToClipboard(text, successMessage) {
   try {
     if (navigator.clipboard && navigator.clipboard.writeText) {
       await navigator.clipboard.writeText(text);
@@ -485,10 +484,24 @@ async function copyJSON() {
       ta.remove();
       if (!ok) throw new Error('copy command failed');
     }
-    toast('Copied rubric JSON', 'ok');
+    toast(successMessage, 'ok');
   } catch (e) {
     toast('Copy failed: ' + e.message, 'err');
   }
+}
+function itemsToSFCriteriaText() {
+  const lines = ['Criteria'];
+  state.items.forEach((it, idx) => {
+    const text = String(it.text || '').trim().replace(/\s+/g, ' ');
+    lines.push('- C' + (idx + 1) + ': ' + text);
+  });
+  return lines.join('\n');
+}
+async function copyJSON() {
+  await copyTextToClipboard(JSON.stringify(itemsToJSON(), null, 2), 'Copied rubric JSON');
+}
+async function copySFCriteria() {
+  await copyTextToClipboard(itemsToSFCriteriaText(), 'Copied SF criteria');
 }
 function importJSONText(text) {
   let obj;
@@ -951,6 +964,7 @@ async function handleZipUpload(file, model) {
 function wire() {
   $('btnAddBottom').addEventListener('click', () => addItem(true));
   $('btnCopy').addEventListener('click', copyJSON);
+  $('btnCopySF').addEventListener('click', copySFCriteria);
   $('btnExportJSON').addEventListener('click', exportJSON);
   $('btnExportExcel').addEventListener('click', exportExcel);
 

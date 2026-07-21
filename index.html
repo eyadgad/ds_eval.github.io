@@ -22,7 +22,10 @@
       <button id="btnUploadClaude" class="btn btn-upload claude" title="Upload Claude's response as a .zip. Text files are indexed for manual review only; scores are not changed.">↑ Claude .zip</button>
     </div>
     <button id="btnPaste" class="btn btn-primary" title="Paste rules from the clipboard — JSON, Excel (tab-separated), or plain text (one rule per line). Replaces the existing rules.">Paste</button>
-    <button id="btnCopy" class="btn" title="Copy the current rubric JSON to the clipboard with ids, scores, categories, and weights.">Copy</button>
+    <div class="btn-group">
+      <button id="btnCopy" class="btn" title="Copy the current rubric JSON to the clipboard with ids, scores, categories, and weights.">Copy</button>
+      <button id="btnCopySF" class="btn" title="Copy the current rules as a plain Criteria list.">SF Copy</button>
+    </div>
     <div class="btn-group">
       <button id="btnImportJSON" class="btn">Import JSON</button>
       <button id="btnImportExcel" class="btn">Import Excel</button>
@@ -167,6 +170,6 @@
   </div>
 </div>
 
-<script src="app.js?v=20260715-copy-json"></script>
+<script src="app.js?v=20260721-sf-copy"></script>
 </body>
 </html>
